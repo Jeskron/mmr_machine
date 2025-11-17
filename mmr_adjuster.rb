@@ -10,4 +10,3 @@ def mmr_adjuster( player_score, opponent_score, result )
     #Main calculation and return of the updated score
     updated_score = player_score + k_factor * ( result - expected_score )
 end
-

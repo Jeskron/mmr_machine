@@ -28,5 +28,5 @@ def read_savedata( file_path )
         player_data << split_data       
     end
 
-    player_objects = player_data.map { |player| Player.new( player[0], player[1].to_i)}
+    player_objects = player_data.map { |player| Player.new( player[0], player[1].to_f)}
 end

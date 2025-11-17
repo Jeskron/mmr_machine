@@ -19,8 +19,8 @@ sub_boxes = [
 lists_box = Gtk::Box.new( :horizontal, 5 ),
 controls_box = Gtk::Box.new( :horizontal, 2 )
 ]
-db_list_store = Gtk::ListStore.new( String, Integer )
-comp_list_store = Gtk::ListStore.new( String, Integer )
+db_list_store = Gtk::ListStore.new( String, Float )
+comp_list_store = Gtk::ListStore.new( String, Float )
 
 #Content
 database_tree = Gtk::TreeView.new( db_list_store )
@@ -170,8 +170,8 @@ balance_teams_button.signal_connect "clicked" do |_widget|
         balance_list_box = Gtk::Box.new( :horizontal, 5 ),
         balance_button_box = Gtk::Box.new( :horizontal, 5 )
     ]    
-    team1_list_store = Gtk::ListStore.new( String, Integer )
-    team2_list_store = Gtk::ListStore.new( String, Integer )
+    team1_list_store = Gtk::ListStore.new( String, Float )
+    team2_list_store = Gtk::ListStore.new( String, Float )
     #Widgets
     team1_tree = Gtk::TreeView.new( team1_list_store )
     team2_tree = Gtk::TreeView.new( team2_list_store )
@@ -319,14 +319,19 @@ balance_teams_button.signal_connect "clicked" do |_widget|
 end
 
 #Methods
-def update_tree_view( db_list_store, db_players_array )
-    db_list_store.clear
-    db_players_array.each do |player|
-        iter = db_list_store.append
-        iter[0] = player.name
-        iter[1] = player.mmr
-    end
+def update_tree_view(list_store, players_array)
+  list_store.clear
+
+  # Sort by highest MMR first
+  sorted = players_array.sort_by { |player| -player.mmr.to_f }
+
+  sorted.each do |player|
+    iter = list_store.append
+    iter[0] = player.name
+    iter[1] = player.mmr
+  end
 end
+
 
 #Runtime
 window.signal_connect("delete-event") do |_widget| 
