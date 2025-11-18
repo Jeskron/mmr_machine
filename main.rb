@@ -4,6 +4,7 @@ load './database.rb'
 load './mmr_adjuster.rb'
 load './player.rb'
 load './auto_balancer.rb'
+load './players_mmr_updater.rb' 
 
 db_players_array = read_savedata( "players.txt" )
 comp_players_array = []
@@ -124,6 +125,7 @@ end
 remove_player_button.signal_connect "clicked" do |_widget|
     selection = database_tree.selection
     iter = selection.selected
+    next unless iter
     db_players_array.reject!{ |player| player.name == iter[0] }
     update_tree_view( db_list_store, db_players_array )
 end
@@ -137,22 +139,28 @@ end
 
 print_rankings_button.signal_connect "clicked" do |_widget|    
     puts "MMR rankings:"
+    text = "MMR rankings:\n"
     db_players_array.each do |player|        
-        player_rank_string = player.name + "-" + player.mmr.to_i.to_s
+        player_rank_string = "#{player.name}-#{'%.2f' % player.mmr}"
         puts player_rank_string
+        text << "#{player_rank_string}\n"
     end
+
+    Gtk::Clipboard.get(Gdk::Selection::CLIPBOARD).set_text(text)
 end
 
 left_arrow_button.signal_connect "clicked" do |_widget|
     selection = competing_tree.selection
     iter = selection.selected
+    next unless iter
     comp_players_array.reject! { |player| player.name == iter[0] }
     update_tree_view( comp_list_store, comp_players_array )
 end
 
 right_arrow_button.signal_connect "clicked" do |_widget|
     selection = database_tree.selection
-    iter = selection.selected    
+    iter = selection.selected  
+    next unless iter 
     comp_players_array.push( Player.new( iter[0], iter[1] ) )
     update_tree_view( comp_list_store, comp_players_array )      
 end
@@ -225,96 +233,68 @@ balance_teams_button.signal_connect "clicked" do |_widget|
     team2_avg_mmr = average_mmr( team2_players_array )
     #team1 def
     team1_button.signal_connect "clicked" do |_widget|
-        team1_players_array.each do |player|
-            player.mmr = mmr_adjuster( player.mmr, team2_avg_mmr, 1 )
-            db_players_array.each do |db_player|
-                if db_player.name == player.name
-                    db_player.mmr = player.mmr
-                end
-            end
-            update_tree_view( db_list_store, db_players_array )                           
-        end
-        team2_players_array.each do |player|
-            player.mmr = mmr_adjuster( player.mmr, team1_avg_mmr, 0 )
-            db_players_array.each do |db_player|
-                if db_player.name == player.name
-                    db_player.mmr = player.mmr
-                end
-            end 
-            update_tree_view( db_list_store, db_players_array )  
-        end
+        players_mmr_updater( team1_players_array, team2_avg_mmr, 1, db_players_array, db_list_store )
+        players_mmr_updater( team2_players_array, team1_avg_mmr, 0, db_players_array, db_list_store )
+
         update_tree_view( team1_list_store, team1_players_array )
         update_tree_view( team2_list_store, team2_players_array )
+
         comp_players_array.clear
         update_tree_view( comp_list_store, comp_players_array )
+
         balance_window.close        
     end
     #team2 def
     team2_button.signal_connect "clicked" do |_widget|
-        team1_players_array.each do |player|
-            player.mmr = mmr_adjuster( player.mmr, team2_avg_mmr, 0 )
-            db_players_array.each do |db_player|
-                if db_player.name == player.name
-                    db_player.mmr = player.mmr
-                end
-            end   
-            update_tree_view( db_list_store, db_players_array )
-        end
-        team2_players_array.each do |player|
-            player.mmr = mmr_adjuster( player.mmr, team1_avg_mmr, 1 )
-            db_players_array.each do |db_player|
-                if db_player.name == player.name
-                    db_player.mmr = player.mmr
-                end
-            end   
-            update_tree_view( db_list_store, db_players_array )
-        end
+        players_mmr_updater( team1_players_array, team2_avg_mmr, 0, db_players_array, db_list_store )
+        players_mmr_updater( team2_players_array, team1_avg_mmr, 1, db_players_array, db_list_store )
+
         update_tree_view( team1_list_store, team1_players_array )
         update_tree_view( team2_list_store, team2_players_array )
+
         comp_players_array.clear
         update_tree_view( comp_list_store, comp_players_array )
+
         balance_window.close
     end    
     #drawdef
     draw_button.signal_connect "clicked" do |_widget|
-        team1_players_array.each do |player|
-            player.mmr = mmr_adjuster( player.mmr, team2_avg_mmr, 0.5 )
-            db_players_array.each do |db_player|
-                if db_player.name == player.name
-                    db_player.mmr = player.mmr
-                end
-            end   
-            update_tree_view( db_list_store, db_players_array )
-        end
-        team2_players_array.each do |player|
-            player.mmr = mmr_adjuster( player.mmr, team1_avg_mmr, 0.5 )
-            db_players_array.each do |db_player|
-                if db_player.name == player.name
-                    db_player.mmr = player.mmr
-                end
-            end   
-            update_tree_view( db_list_store, db_players_array )
-        end
+
+        players_mmr_updater( team1_players_array, team2_avg_mmr, 0.5, db_players_array, db_list_store )
+        players_mmr_updater( team2_players_array, team1_avg_mmr, 0.5, db_players_array, db_list_store )
+
         update_tree_view( team1_list_store, team1_players_array )
         update_tree_view( team2_list_store, team2_players_array )
+
         comp_players_array.clear
         update_tree_view( comp_list_store, comp_players_array )
+
         balance_window.close
     end    
     #printteamsdef
     print_teams_button.signal_connect "clicked" do |_widget|
+    text = ""
 
-        puts("Team One:")
-        puts("(debug_team1_avg_mmr)" + team1_avg_mmr.to_s )
-        team1_players_array.each do |player|
-            puts(player.name)
-        end
-        puts("Team Two:")
-        puts("(debug_team2_avg_mmr)" + team2_avg_mmr.to_s )
-        team2_players_array.each do |player|
-            puts(player.name)
-        end
-    end    
+    puts one = "Team One Mmr #{'%.2f' % total_mmr(team1_players_array)}"
+    text << one + "\n"
+    team1_players_array.each do |player|
+        puts player.name
+        text << "#{player.name}\n"
+    end
+
+    text << "\n"
+
+    puts two = "Team Two Mmr #{'%.2f' % total_mmr(team2_players_array)}"
+    text << two + "\n"
+    team2_players_array.each do |player|
+        puts player.name
+        text << "#{player.name}\n"
+    end
+
+    cb = Gtk::Clipboard.get(Gdk::Selection::CLIPBOARD)
+    cb.set_text(text)
+    $last_clipboard = cb
+    end
     balance_window.show_all
 end
 

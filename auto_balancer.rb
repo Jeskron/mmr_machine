@@ -21,7 +21,7 @@ def auto_balancer( players )
     return [ team_one, team_two]
 end
 
-def average_team_mmr(team)
+def average_mmr(team)
   team.sum(&:mmr) / team.length.to_f
 end
 
