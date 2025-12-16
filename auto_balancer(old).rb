@@ -26,7 +26,7 @@ def auto_balancer ( players )
     end
 
     return teams = [ team_one, team_two ]    
-end     
+end
 
 #Helper method for average mmr calculation
 def average_mmr( team )

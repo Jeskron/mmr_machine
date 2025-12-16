@@ -302,10 +302,10 @@ end
 def update_tree_view(list_store, players_array)
   list_store.clear
 
-  # Sort by highest MMR first
-  sorted = players_array.sort_by { |player| -player.mmr.to_f }
+  # sort array itself, descending by mmr
+  players_array.sort_by! { |player| -player.mmr.to_f }
 
-  sorted.each do |player|
+  players_array.each do |player|
     iter = list_store.append
     iter[0] = player.name
     iter[1] = player.mmr
